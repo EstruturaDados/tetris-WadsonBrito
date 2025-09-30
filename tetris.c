@@ -1,10 +1,103 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 // Desafio Tetris Stack
 // Tema 3 - Integração de Fila e Pilha
 // Este código inicial serve como base para o desenvolvimento do sistema de controle de peças.
 // Use as instruções de cada nível para desenvolver o desafio.
 
+#define TAMANHO_FILA 5   // número fixo de peças na fila
+
+// -------------------- Definição de tipos -------------------- //
+typedef struct {
+    char nome;  // tipo da peça (I, O, T, L)
+    int id;     // identificador único da peça
+} Peca;
+
+typedef struct {
+    Peca itens[TAMANHO_FILA];
+    int frente;   // índice do primeiro elemento
+    int tras;     // índice do último elemento
+    int qtd;      // quantidade de elementos na fila
+} Fila;
+
+// -------------------- Variáveis globais -------------------- //
+int contadorId = 0; // controla o id único das peças
+
+// -------------------- Funções auxiliares -------------------- //
+char tiposPecas[] = {'I', 'O', 'T', 'L'};
+
+// Gera automaticamente uma nova peça com tipo aleatório e id único
+Peca gerarPeca() {
+    Peca nova;
+    nova.nome = tiposPecas[rand() % 4]; // seleciona tipo aleatório
+    nova.id = contadorId++;             // atribui id único
+    return nova;
+}
+
+// Inicializa a fila com TAMANHO_FILA peças geradas automaticamente
+void inicializarFila(Fila *f) {
+    f->frente = 0;
+    f->tras = -1;
+    f->qtd = 0;
+    for (int i = 0; i < TAMANHO_FILA; i++) {
+        Peca p = gerarPeca();
+        f->tras = (f->tras + 1) % TAMANHO_FILA;
+        f->itens[f->tras] = p;
+        f->qtd++;
+    }
+}
+
+// Verifica se a fila está cheia
+int filaCheia(Fila *f) {
+    return f->qtd == TAMANHO_FILA;
+}
+
+// Verifica se a fila está vazia
+int filaVazia(Fila *f) {
+    return f->qtd == 0;
+}
+
+// Insere uma peça no final da fila
+void inserirFila(Fila *f, Peca p) {
+    if (filaCheia(f)) {
+        printf("A fila está cheia! Não é possível adicionar nova peça.\n");
+        return;
+    }
+    f->tras = (f->tras + 1) % TAMANHO_FILA;
+    f->itens[f->tras] = p;
+    f->qtd++;
+    printf("Peça [%c %d] adicionada à fila.\n", p.nome, p.id);
+}
+
+// Remove uma peça da frente da fila
+void removerFila(Fila *f) {
+    if (filaVazia(f)) {
+        printf("A fila está vazia! Não há peças para jogar.\n");
+        return;
+    }
+    Peca removida = f->itens[f->frente];
+    f->frente = (f->frente + 1) % TAMANHO_FILA;
+    f->qtd--;
+    printf("🎮 Jogando peça [%c %d]...\n", removida.nome, removida.id);
+}
+
+// Exibe o estado atual da fila
+void exibirFila(Fila *f) {
+    printf("\nFila de peças:\n");
+    if (filaVazia(f)) {
+        printf("[vazia]\n");
+        return;
+    }
+    int i = f->frente;
+    for (int count = 0; count < f->qtd; count++) {
+        Peca p = f->itens[i];
+        printf("[%c %d] ", p.nome, p.id);
+        i = (i + 1) % TAMANHO_FILA;
+    }
+    printf("\n");
+}
 int main() {
 
     // 🧩 Nível Novato: Fila de Peças Futuras
@@ -18,6 +111,38 @@ int main() {
     //      1 - Jogar peça (remover da frente)
     //      0 - Sair
     // - A cada remoção, insira uma nova peça ao final da fila.
+
+    srand(time(NULL)); // inicializa gerador aleatório
+    Fila fila;
+    inicializarFila(&fila);
+
+    int opcao;
+    do {
+        exibirFila(&fila);
+        printf("\nOpções de ação:\n");
+        printf("1 - Jogar peça (Remover)\n");
+        printf("2 - Inserir nova peça (Inserir)\n");
+        printf("0 - Sair\n");
+        printf("Escolha: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                removerFila(&fila);
+                break;
+            case 2:
+                inserirFila(&fila, gerarPeca());
+                break;
+            case 0:
+                printf("👋 Encerrando o jogo...\n");
+                break;
+            default:
+                printf("⚠️ Opção inválida! Tente novamente.\n");
+        }
+    } while (opcao != 0);
+
+    
+
 
 
 
