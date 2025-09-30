@@ -80,7 +80,7 @@ void removerFila(Fila *f) {
     Peca removida = f->itens[f->frente];
     f->frente = (f->frente + 1) % TAMANHO_FILA;
     f->qtd--;
-    printf("🎮 Jogando peça [%c %d]...\n", removida.nome, removida.id);
+    printf("Jogando peça [%c %d]...\n", removida.nome, removida.id);
 }
 
 // Exibe o estado atual da fila
