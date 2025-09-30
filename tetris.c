@@ -134,10 +134,10 @@ int main() {
                 inserirFila(&fila, gerarPeca());
                 break;
             case 0:
-                printf("👋 Encerrando o jogo...\n");
+                printf("Encerrando o jogo...\n");
                 break;
             default:
-                printf("⚠️ Opção inválida! Tente novamente.\n");
+                printf("Opção inválida! Tente novamente.\n");
         }
     } while (opcao != 0);
 
