@@ -136,38 +136,7 @@ void usarReservada() {
 }
 
 int main() {
-    srand(time(NULL));
-    inicializarFila();
-
-    int opcao;
-    do {
-        exibirEstado();
-        printf("\nOpções para Ação:\n");
-        printf("1 - Jogar peça\n");
-        printf("2 - Reservar uma peça\n");
-        printf("3 - Usar peça reservada\n");
-        printf("0 - Sair\n");
-        printf("Opção: ");
-        scanf("%d", &opcao);
-
-        switch (opcao) {
-            case 1: jogarPeca(); 
-            break;
-            case 2: reservaPeca(); 
-            break;
-            case 3: usarReservada(); 
-            break;
-            case 0: printf("Saindo do jogo... gratidão!\n"); 
-            break;
-            default: printf("Opção inválida!\n");
-        }           
-    } while (opcao != 0);
-
-    return 0;
-}
-
-
-    // 🧩 Nível Novato: Fila de Peças Futuras
+     // 🧩 Nível Novato: Fila de Peças Futuras
     //
     // - Crie uma struct Peca com os campos: tipo (char) e id (int).
     // - Implemente uma fila circular com capacidade para 5 peças.
@@ -208,4 +177,32 @@ int main() {
     // - O menu deve ficar assim:
     //      4 - Trocar peça da frente com topo da pilha
     //      5 - Trocar 3 primeiros da fila com os 3 da pilha
-    
+    srand(time(NULL));
+    inicializarFila();
+
+    int opcao;
+    do {
+        exibirEstado();
+        printf("\nOpções para Ação:\n");
+        printf("1 - Jogar peça\n");
+        printf("2 - Reservar uma peça\n");
+        printf("3 - Usar peça reservada\n");
+        printf("0 - Sair\n");
+        printf("Opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1: jogarPeca(); 
+            break;
+            case 2: reservaPeca(); 
+            break;
+            case 3: usarReservada(); 
+            break;
+            case 0: printf("Saindo do jogo... gratidão!\n"); 
+            break;
+            default: printf("Opção inválida!\n");
+        }           
+    } while (opcao != 0);
+
+    return 0;
+}    
