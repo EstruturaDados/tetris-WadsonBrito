@@ -19,6 +19,7 @@ typedef struct {
 
 Peca fila[TAMANHO_FILA];
 int frente = 0, tras = 0, qtdFila = 0;
+
 Peca pilha[TAMANHO_PILHA];
 int topo = -1;
 
@@ -44,7 +45,7 @@ void inicializarFila() {
 }
 
 // Exibe o estado atual da fila e pilha
-void exibirEstado(){
+void exibirEstado() {
 printf("==================== ESTADO ATUAL ==================\n");
 
     //fila
@@ -61,11 +62,11 @@ printf("==================== ESTADO ATUAL ==================\n");
     for (i = topo; i >= 0; i--) {
         printf("[%c %d] ", pilha[i].nome, pilha[i].id);
     }
-    printf("\n====================================\n");
+    printf("\n====================================================\n");
 }
 
 // Remover peça da frente da fila circular
-Peca remove() {
+Peca dequeue() {
     if (qtdFila == 0) {
         printf("Erro: Fila vazia!\n");
         Peca vazio = {'-', -1};
@@ -78,7 +79,7 @@ Peca remove() {
 }
 
 // Insere peça no final da fila circular
-void inserir(Peca p) {
+void enqueue(Peca p) {
     if (qtdFila == TAMANHO_FILA) {
         printf("Erro: fila cheia!\n");
         return;
@@ -109,9 +110,9 @@ Peca pop() {
 
 // Ações do jogo
 void jogarPeca(){
-    Peca jogada = remove();
+    Peca jogada = dequeue();
     printf("Jogando peça: [%c %d]\n", jogada.nome, jogada.id);
-    inserir(gerarPeca());
+    enqueue(gerarPeca());
 }
 
 void reservaPeca() {
@@ -119,10 +120,10 @@ void reservaPeca() {
         printf("A pilha está cheia, não é possível reservar\n");
         return;
     }
-    Peca reservada = remove();
+    Peca reservada = dequeue();
     push(reservada);
     printf("Reservando peça: [%c %d]\n", reservada.nome, reservada.id);
-    inserir(gerarPeca());
+    enqueue(gerarPeca());
 }
 
 void usarReservada() {
@@ -135,6 +136,36 @@ void usarReservada() {
 }
 
 int main() {
+    srand(time(NULL));
+    inicializarFila();
+
+    int opcao;
+    do {
+        exibirEstado();
+        printf("\nOpções para Ação:\n");
+        printf("1 - Jogar peça\n");
+        printf("2 - Reservar uma peça\n");
+        printf("3 - Usar peça reservada\n");
+        printf("0 - Sair\n");
+        printf("Opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1: jogarPeca(); 
+            break;
+            case 2: reservaPeca(); 
+            break;
+            case 3: usarReservada(); 
+            break;
+            case 0: printf("Saindo do jogo... gratidão!\n"); 
+            break;
+            default: printf("Opção inválida!\n");
+        }           
+    } while (opcao != 0);
+
+    return 0;
+}
+
 
     // 🧩 Nível Novato: Fila de Peças Futuras
     //
@@ -177,29 +208,4 @@ int main() {
     // - O menu deve ficar assim:
     //      4 - Trocar peça da frente com topo da pilha
     //      5 - Trocar 3 primeiros da fila com os 3 da pilha
-    srand(time(NULL));
-    inicializarFila();
-
-    int opcao;
-    do {
-        exibirEstado();
-        printf("\nOpções para Ação:\n");
-        printf("1 - Jogar peça\n");
-        printf("2 - Reservar uma peça\n");
-        printf("3 - Usar peça reservada\n");
-        printf("0 - Sair\n");
-        printf("Opção: ");
-        scanf("%d", &opcao);
-
-        switch (opcao) {
-            case 1: jogarPeca(); break;
-            case 2: reservaPeca(); break;
-            case 3: usarReservada(); break;
-            case 0: printf("Saindo do jogo... gratidão!\n"); break;
-            default: printf("Opção inválida!\n");
-        }           
-    }while (opcao != 0);
-
-    return 0;
-}
-
+    
