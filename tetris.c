@@ -1,39 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <string.h>
+#include <string.h> 
 
-// Desafio Tetris Stack
-// Tema 3 - Integração de Fila e Pilha
-// Este código inicial serve como base para o desenvolvimento do sistema de controle de peças.
-// Use as instruções de cada nível para desenvolver o desafio.
-
-#define TAM_FILA 5   
-#define TAM_PILHA 3 
+#define TAM_FILA 5
+#define TAM_PILHA 3
 
 typedef struct {
-    char nome;  
-    int id;     
+    char nome; // 'I', 'O', 'T', 'L'
+    int id;    // id único
 } Peca;
 
 typedef struct {
     Peca itens[TAM_FILA];
-    int frente;
-    int tras;
+    int frente; // índice do elemento na frente
+    int tras;   // índice do último elemento
     int tamanho;
 } Fila;
 
 typedef struct {
     Peca itens[TAM_PILHA];
-    int topo;
+    int topo; // -1 se vazia, else índice do topo
 } Pilha;
 
+// Estrutura para snapshot (undo)
 typedef struct {
     Fila fila;
     Pilha pilha;
-    int valido;
+    int valido; // 1 se há snapshot válido
 } Snapshot;
 
+// =========================
+// Protótipos
+// =========================
 Peca gerarPeca();
 void inicializarFila(Fila *f);
 void inicializarPilha(Pilha *p);
@@ -57,7 +56,7 @@ void salvarSnapshot(Snapshot *s, const Fila *f, const Pilha *p);
 void restaurarSnapshot(Snapshot *s, Fila *f, Pilha *p);
 void invalidarSnapshot(Snapshot *s);
 
-// Operações do jogo
+// Operações de jogo (Novato / Aventureiro / Mestre)
 void jogarPeca(Fila *f, Snapshot *snap);
 void reservarPeca(Fila *f, Pilha *p, Snapshot *snap);
 void usarReservada(Pilha *p, Snapshot *snap);
@@ -65,23 +64,28 @@ void trocarUma(Fila *f, Pilha *p, Snapshot *snap);
 void trocarMultiplas(Fila *f, Pilha *p, Snapshot *snap);
 void inverterFilaPilha(Fila *f, Pilha *p, Snapshot *snap);
 
+// Utilitários
 void limparBufferStdin();
+
+// =========================
+// Implementações
+// =========================
 
 Peca gerarPeca() {
     static int contador = 0;
-    char tipos[] = {'I', 'O', 'T', 'L'};
+    char tipos[] = {'I','O','T','L'};
     Peca nova;
     nova.nome = tipos[rand() % 4];
     nova.id = contador++;
     return nova;
 }
 
-// Fila
+/* ---------- Fila ---------- */
 void inicializarFila(Fila *f) {
     f->frente = 0;
     f->tras = -1;
     f->tamanho = 0;
-    
+    // Preencher com TAM_FILA peças geradas automaticamente
     for (int i = 0; i < TAM_FILA; i++) {
         enfileirar(f, gerarPeca());
     }
@@ -96,14 +100,22 @@ int filaVazia(const Fila *f) {
 }
 
 void enfileirar(Fila *f, Peca x) {
+    if (filaCheia(f)) return;
+    f->tras = (f->tras + 1) % TAM_FILA;
+    f->itens[f->tras] = x;
+    f->tamanho++;
+}
+
+Peca desenfileirar(Fila *f) {
+    Peca vazio = {'-', -1};
     if (filaVazia(f)) return vazio;
     Peca ret = f->itens[f->frente];
-    f->frente = (ff->frente + 1) % TAM_FILA;
+    f->frente = (f->frente + 1) % TAM_FILA;
     f->tamanho--;
     return ret;
 }
 
-// Pilha
+/* ---------- Pilha ---------- */
 void inicializarPilha(Pilha *p) {
     p->topo = -1;
 }
@@ -124,12 +136,12 @@ void empilhar(Pilha *p, Peca x) {
 Peca desempilhar(Pilha *p) {
     Peca vazio = {'-', -1};
     if (pilhaVazia(p)) return vazio;
-    return p->itens[(p->topo)--]
+    return p->itens[(p->topo)--];
 }
 
-// Exibição
-void mostrarFila(const Fila*f) {
-    printf("Fila de peças\t");
+/* ---------- Exibição ---------- */
+void mostrarFila(const Fila *f) {
+    printf("Fila de pecas\t");
     if (filaVazia(f)) {
         printf("(vazia)");
     } else {
@@ -143,8 +155,8 @@ void mostrarFila(const Fila*f) {
 
 void mostrarPilha(const Pilha *p) {
     printf("Pilha de reserva\t(Topo -> base): ");
-    if(pilhaVazia(p)) {
-        print("(vazia)");
+    if (pilhaVazia(p)) {
+        printf("(vazia)");
     } else {
         for (int i = p->topo; i >= 0; i--) {
             printf("[%c %d] ", p->itens[i].nome, p->itens[i].id);
@@ -154,14 +166,15 @@ void mostrarPilha(const Pilha *p) {
 }
 
 void mostrarEstado(const Fila *f, const Pilha *p) {
-    printf("========== ESTADO ATUAL ==========");
+    printf("\n==================== ESTADO ATUAL ====================\n");
     mostrarFila(f);
     mostrarPilha(p);
-    printf("==================================");   
+    printf("======================================================\n");
 }
 
-// Snapshot
+/* ---------- Snapshot (undo) ---------- */
 void salvarSnapshot(Snapshot *s, const Fila *f, const Pilha *p) {
+    // copia bit-a-bit
     s->fila = *f;
     s->pilha = *p;
     s->valido = 1;
@@ -171,10 +184,10 @@ void restaurarSnapshot(Snapshot *s, Fila *f, Pilha *p) {
     if (s->valido) {
         *f = s->fila;
         *p = s->pilha;
-        s->valido = 0;
+        s->valido = 0; // consumido
         printf("Desfeito: estado anterior restaurado.\n");
     } else {
-        printf("Não há ação para desfazer.\n");
+        printf("Nao ha acao para desfazer.\n");
     }
 }
 
@@ -182,53 +195,62 @@ void invalidarSnapshot(Snapshot *s) {
     s->valido = 0;
 }
 
-// Operações
-void jogarPeca(fila *f, Snapshot *snap) {
-    if (snap) salvarSnapshot(snap, f, NULL);
+/* ---------- Operações ---------- */
+
+/* Jogar peca: desenfileira a da frente e gera nova p/ manter a fila cheia.
+   Salva snapshot antes da ação (apenas para nivel Mestre). */
+void jogarPeca(Fila *f, Snapshot *snap) {
+    if (snap) salvarSnapshot(snap, f, NULL); // Note: When only fila muda, pilha não é passada; we'll handle in caller.
     if (filaVazia(f)) {
         printf("Fila vazia. Nada a jogar.\n");
-        invalidarSnapshot(snap);
+        invalidarSnapshot(snap); // não válido se nada aconteceu
         return;
     }
     Peca p = desenfileirar(f);
-    printf("Peça jogada: [%c %d]\n", p.nome, p.id);
+    printf("Peca jogada: [%c %d]\n", p.nome, p.id);
+    // gera nova peça e enfileira para manter o tamanho
     enfileirar(f, gerarPeca());
 }
 
+/* Reservar peça: move da frente da fila para o topo da pilha (se houver espaço).
+   Gera nova peça para enfileirar.
+   Salva snapshot antes da ação. */
 void reservarPeca(Fila *f, Pilha *p, Snapshot *snap) {
     if (filaVazia(f)) {
-        printf("Fila vazia. Não a peça para reservar.\n");
+        printf("Fila vazia. Nao ha peca para reservar.\n");
         invalidarSnapshot(snap);
-        return
+        return;
     }
     if (pilhaCheia(p)) {
-        printf("Pilha cheia, não é possível reservar.\n");
+        printf("Pilha cheia. Nao e possivel reservar.\n");
         invalidarSnapshot(snap);
-        return
+        return;
     }
     if (snap) salvarSnapshot(snap, f, p);
     Peca mov = desenfileirar(f);
     empilhar(p, mov);
-    printf("Peça [%c %d] movida para reserva.\n", mov.nome, mov.id);
+    printf("Peca [%c %d] movida para reserva.\n", mov.nome, mov.id);
     enfileirar(f, gerarPeca());
 }
 
+/* Usar reservada: desempilha (remove) do topo */
 void usarReservada(Pilha *p, Snapshot *snap) {
     if (pilhaVazia(p)) {
-        printf("Pilha vazia. Não há peças para usar.\n");
+        printf("Pilha vazia. Nao ha peca para usar.\n");
         invalidarSnapshot(snap);
         return;
     }
     if (snap) salvarSnapshot(snap, NULL, p);
     Peca u = desempilhar(p);
-    printf("Peça usada de reserva: [%c %d]\n", u.nome, u.id);
+    printf("Peca usada da reserva: [%c %d]\n", u.nome, u.id);
 }
 
+/* Trocar uma: troca a peça da frente da fila com o topo da pilha */
 void trocarUma(Fila *f, Pilha *p, Snapshot *snap) {
-    if (filaVazia(f)) || pilhaVazia(p) {
-        printf("Troca impossível: verifique se a fila e a pilha possuem elementos.\n");
+    if (filaVazia(f) || pilhaVazia(p)) {
+        printf("Troca impossivel: verifique se fila e pilha possuem elementos.\n");
         invalidarSnapshot(snap);
-        return
+        return;
     }
     if (snap) salvarSnapshot(snap, f, p);
     int idx = f->frente;
@@ -238,6 +260,8 @@ void trocarUma(Fila *f, Pilha *p, Snapshot *snap) {
     printf("Troca realizada entre frente da fila e topo da pilha.\n");
 }
 
+/* Troca múltipla: alterna os 3 primeiros da fila com as 3 pecas da pilha
+   somente se a fila tiver >=3 e pilha tiver >=3 */
 void trocarMultiplas(Fila *f, Pilha *p, Snapshot *snap) {
     if (f->tamanho < 3 || p->topo < 2) {
         printf("Troca multipla impossivel: verifique se existem pelo menos 3 pecas em ambas as estruturas.\n");
@@ -248,30 +272,48 @@ void trocarMultiplas(Fila *f, Pilha *p, Snapshot *snap) {
     for (int i = 0; i < 3; i++) {
         int idx = (f->frente + i) % TAM_FILA;
         Peca temp = f->itens[idx];
+        // pilha: topo .. topo-2 é ordem; queremos que o primeiro da fila troque com topo,
+        // segundo com topo-1, terceiro com topo-2 -> isso iguala a ideia de "os 3 primeiros"
         f->itens[idx] = p->itens[p->topo - i];
         p->itens[p->topo - i] = temp;
     }
     printf("Troca multipla entre os 3 primeiros da fila e as 3 pecas da pilha realizada.\n");
 }
 
+/* Inverter fila com pilha:
+   - Faz uma troca segura entre os conteúdos, respeitando capacidades.
+   - Estratégia:
+       copia temporária da fila e pilha,
+       limpa ambas,
+       enfileira na fila os elementos da pilha (do fundo para o topo) até encher a fila,
+       empilha na pilha os primeiros elementos da fila-copia (na ordem de frente) até encher a pilha.
+   (Essa definição garante comport. deterministico e preserva ordem)
+*/
 void inverterFilaPilha(Fila *f, Pilha *p, Snapshot *snap) {
     if (snap) salvarSnapshot(snap, f, p);
 
+    // copia
     Fila fcopy = *f;
     Pilha pcopy = *p;
 
+    // limpa originais
     f->frente = 0; f->tras = -1; f->tamanho = 0;
     p->topo = -1;
 
+    // 1) Colocar elementos da pilha (do base para o topo) na fila: queremos manter ordem "de base->topo"
+    // Mas pilha tem indices 0..topo (base..topo). Vamos enfileirar do indice 0 até topo, na mesma ordem.
     for (int i = 0; i <= pcopy.topo && f->tamanho < TAM_FILA; i++) {
         enfileirar(f, pcopy.itens[i]);
     }
 
+    // 2) Preencher fila com elementos restantes da fila copia (apenas se houver espaço)
     for (int i = 0; i < fcopy.tamanho && f->tamanho < TAM_FILA; i++) {
         int idx = (fcopy.frente + i) % TAM_FILA;
         enfileirar(f, fcopy.itens[idx]);
     }
 
+    // 3) Empilhar na pilha os primeiros elementos da fila-copia (em ordem de frente),
+    //    até encher a pilha.
     for (int i = 0; i < fcopy.tamanho && p->topo < TAM_PILHA - 1; i++) {
         int idx = (fcopy.frente + i) % TAM_FILA;
         empilhar(p, fcopy.itens[idx]);
@@ -280,13 +322,19 @@ void inverterFilaPilha(Fila *f, Pilha *p, Snapshot *snap) {
     printf("Inversao/transferencia entre fila e pilha realizada (respeitando capacidades).\n");
 }
 
+/* ---------- Utilitários ---------- */
 void limparBufferStdin() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
+// Desafio Tetris Stack
+// Tema 3 - Integração de Fila e Pilha
+// Este código inicial serve como base para o desenvolvimento do sistema de controle de peças.
+// Use as instruções de cada nível para desenvolver o desafio.
 
 int main() {
+
      // 🧩 Nível Novato: Fila de Peças Futuras
     //
     // - Crie uma struct Peca com os campos: tipo (char) e id (int).
@@ -532,3 +580,5 @@ int main() {
     printf("Obrigado por jogar Tetris Stack (simulador)!\n");
     return 0;
 }
+
+
