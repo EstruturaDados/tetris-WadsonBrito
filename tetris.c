@@ -1,139 +1,290 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 // Desafio Tetris Stack
 // Tema 3 - Integração de Fila e Pilha
 // Este código inicial serve como base para o desenvolvimento do sistema de controle de peças.
 // Use as instruções de cada nível para desenvolver o desafio.
 
-#define TAMANHO_FILA 5   // número fixo de peças na fila
-#define TAMANHO_PILHA 3 // número fico de peças na pilha
+#define TAM_FILA 5   
+#define TAM_PILHA 3 
 
 typedef struct {
-    char nome;  // tipo da peça (I, O, T, L)
-    int id;     // identificador único da peça
+    char nome;  
+    int id;     
 } Peca;
 
+typedef struct {
+    Peca itens[TAM_FILA];
+    int frente;
+    int tras;
+    int tamanho;
+} Fila;
 
+typedef struct {
+    Peca itens[TAM_PILHA];
+    int topo;
+} Pilha;
 
-Peca fila[TAMANHO_FILA];
-int frente = 0, tras = 0, qtdFila = 0;
+typedef struct {
+    Fila fila;
+    Pilha pilha;
+    int valido;
+} Snapshot;
 
-Peca pilha[TAMANHO_PILHA];
-int topo = -1;
+Peca gerarPeca();
+void inicializarFila(Fila *f);
+void inicializarPilha(Pilha *p);
 
-int contadorId = 0; 
+int filaCheia(const Fila *f);
+int filaVazia(const Fila *f);
+int pilhaCheia(const Pilha *p);
+int pilhaVazia(const Pilha *p);
 
+void enfileirar(Fila *f, Peca x);
+Peca desenfileirar(Fila *f);
 
-// Gera uma peça aleatória
+void empilhar(Pilha *p, Peca x);
+Peca desempilhar(Pilha *p);
+
+void mostrarFila(const Fila *f);
+void mostrarPilha(const Pilha *p);
+void mostrarEstado(const Fila *f, const Pilha *p);
+
+void salvarSnapshot(Snapshot *s, const Fila *f, const Pilha *p);
+void restaurarSnapshot(Snapshot *s, Fila *f, Pilha *p);
+void invalidarSnapshot(Snapshot *s);
+
+// Operações do jogo
+void jogarPeca(Fila *f, Snapshot *snap);
+void reservarPeca(Fila *f, Pilha *p, Snapshot *snap);
+void usarReservada(Pilha *p, Snapshot *snap);
+void trocarUma(Fila *f, Pilha *p, Snapshot *snap);
+void trocarMultiplas(Fila *f, Pilha *p, Snapshot *snap);
+void inverterFilaPilha(Fila *f, Pilha *p, Snapshot *snap);
+
+void limparBufferStdin();
+
 Peca gerarPeca() {
+    static int contador = 0;
     char tipos[] = {'I', 'O', 'T', 'L'};
     Peca nova;
-    nova.nome = tipos[rand() % 4]; 
-    nova.id = contadorId++;            
+    nova.nome = tipos[rand() % 4];
+    nova.id = contador++;
     return nova;
 }
 
-// Inicializa a fila circular com peças
-void inicializarFila() {
-   while (qtdFila < TAMANHO_FILA) {
-    fila[tras] = gerarPeca();
-    tras = (tras + 1) % TAMANHO_FILA;
-    qtdFila++;
-   }
+// Fila
+void inicializarFila(Fila *f) {
+    f->frente = 0;
+    f->tras = -1;
+    f->tamanho = 0;
+    
+    for (int i = 0; i < TAM_FILA; i++) {
+        enfileirar(f, gerarPeca());
+    }
 }
 
-// Exibe o estado atual da fila e pilha
-void exibirEstado() {
-printf("==================== ESTADO ATUAL ==================\n");
+int filaCheia(const Fila *f) {
+    return f->tamanho == TAM_FILA;
+}
 
-    //fila
+int filaVazia(const Fila *f) {
+    return f->tamanho == 0;
+}
+
+void enfileirar(Fila *f, Peca x) {
+    if (filaVazia(f)) return vazio;
+    Peca ret = f->itens[f->frente];
+    f->frente = (ff->frente + 1) % TAM_FILA;
+    f->tamanho--;
+    return ret;
+}
+
+// Pilha
+void inicializarPilha(Pilha *p) {
+    p->topo = -1;
+}
+
+int pilhaCheia(const Pilha *p) {
+    return p->topo == TAM_PILHA - 1;
+}
+
+int pilhaVazia(const Pilha *p) {
+    return p->topo == -1;
+}
+
+void empilhar(Pilha *p, Peca x) {
+    if (pilhaCheia(p)) return;
+    p->itens[++(p->topo)] = x;
+}
+
+Peca desempilhar(Pilha *p) {
+    Peca vazio = {'-', -1};
+    if (pilhaVazia(p)) return vazio;
+    return p->itens[(p->topo)--]
+}
+
+// Exibição
+void mostrarFila(const Fila*f) {
     printf("Fila de peças\t");
-    int i, idx = frente;
-    for (i = 0; i < qtdFila; i++) {
-        printf("[%c %d] ", fila[idx].nome, fila[idx].id);
-        idx = (idx + 1) % TAMANHO_FILA;
+    if (filaVazia(f)) {
+        printf("(vazia)");
+    } else {
+        for (int i = 0; i < f->tamanho; i++) {
+            int idx = (f->frente + i) % TAM_FILA;
+            printf("[%c %d] ", f->itens[idx].nome, f->itens[idx].id);
+        }
     }
     printf("\n");
-
-    // Pilha
-    printf("Pilha de reserva \t(Topo -> Base): ");
-    for (i = topo; i >= 0; i--) {
-        printf("[%c %d] ", pilha[i].nome, pilha[i].id);
-    }
-    printf("\n====================================================\n");
 }
 
-// Remover peça da frente da fila circular
-Peca dequeue() {
-    if (qtdFila == 0) {
-        printf("Erro: Fila vazia!\n");
-        Peca vazio = {'-', -1};
-        return vazio;
+void mostrarPilha(const Pilha *p) {
+    printf("Pilha de reserva\t(Topo -> base): ");
+    if(pilhaVazia(p)) {
+        print("(vazia)");
+    } else {
+        for (int i = p->topo; i >= 0; i--) {
+            printf("[%c %d] ", p->itens[i].nome, p->itens[i].id);
+        }
     }
-    Peca removida = fila[frente];
-    frente = (frente + 1) % TAMANHO_FILA;
-    qtdFila--;
-    return removida;
+    printf("\n");
 }
 
-// Insere peça no final da fila circular
-void enqueue(Peca p) {
-    if (qtdFila == TAMANHO_FILA) {
-        printf("Erro: fila cheia!\n");
+void mostrarEstado(const Fila *f, const Pilha *p) {
+    printf("========== ESTADO ATUAL ==========");
+    mostrarFila(f);
+    mostrarPilha(p);
+    printf("==================================");   
+}
+
+// Snapshot
+void salvarSnapshot(Snapshot *s, const Fila *f, const Pilha *p) {
+    s->fila = *f;
+    s->pilha = *p;
+    s->valido = 1;
+}
+
+void restaurarSnapshot(Snapshot *s, Fila *f, Pilha *p) {
+    if (s->valido) {
+        *f = s->fila;
+        *p = s->pilha;
+        s->valido = 0;
+        printf("Desfeito: estado anterior restaurado.\n");
+    } else {
+        printf("Não há ação para desfazer.\n");
+    }
+}
+
+void invalidarSnapshot(Snapshot *s) {
+    s->valido = 0;
+}
+
+// Operações
+void jogarPeca(fila *f, Snapshot *snap) {
+    if (snap) salvarSnapshot(snap, f, NULL);
+    if (filaVazia(f)) {
+        printf("Fila vazia. Nada a jogar.\n");
+        invalidarSnapshot(snap);
         return;
     }
-    fila[tras] = p;
-    tras = (tras + 1) % TAMANHO_FILA;
-    qtdFila++;
+    Peca p = desenfileirar(f);
+    printf("Peça jogada: [%c %d]\n", p.nome, p.id);
+    enfileirar(f, gerarPeca());
 }
 
-// Empilha uma peça
-void push(Peca p) {
-    if (topo == TAMANHO_PILHA - 1){
-        printf("Erro: pilha cheia!\n");
+void reservarPeca(Fila *f, Pilha *p, Snapshot *snap) {
+    if (filaVazia(f)) {
+        printf("Fila vazia. Não a peça para reservar.\n");
+        invalidarSnapshot(snap);
+        return
+    }
+    if (pilhaCheia(p)) {
+        printf("Pilha cheia, não é possível reservar.\n");
+        invalidarSnapshot(snap);
+        return
+    }
+    if (snap) salvarSnapshot(snap, f, p);
+    Peca mov = desenfileirar(f);
+    empilhar(p, mov);
+    printf("Peça [%c %d] movida para reserva.\n", mov.nome, mov.id);
+    enfileirar(f, gerarPeca());
+}
+
+void usarReservada(Pilha *p, Snapshot *snap) {
+    if (pilhaVazia(p)) {
+        printf("Pilha vazia. Não há peças para usar.\n");
+        invalidarSnapshot(snap);
         return;
     }
-    pilha[++topo] = p;
+    if (snap) salvarSnapshot(snap, NULL, p);
+    Peca u = desempilhar(p);
+    printf("Peça usada de reserva: [%c %d]\n", u.nome, u.id);
 }
 
-// Desempilhando uma peça
-Peca pop() {
-    if (topo == -1) {
-        printf("Erro: pilha vazia!\n");
-        Peca vazio = {'-', -1};
-        return vazio;
+void trocarUma(Fila *f, Pilha *p, Snapshot *snap) {
+    if (filaVazia(f)) || pilhaVazia(p) {
+        printf("Troca impossível: verifique se a fila e a pilha possuem elementos.\n");
+        invalidarSnapshot(snap);
+        return
     }
-    return pilha[topo--];
+    if (snap) salvarSnapshot(snap, f, p);
+    int idx = f->frente;
+    Peca temp = f->itens[idx];
+    f->itens[idx] = p->itens[p->topo];
+    p->itens[p->topo] = temp;
+    printf("Troca realizada entre frente da fila e topo da pilha.\n");
 }
 
-// Ações do jogo
-void jogarPeca(){
-    Peca jogada = dequeue();
-    printf("Jogando peça: [%c %d]\n", jogada.nome, jogada.id);
-    enqueue(gerarPeca());
-}
-
-void reservaPeca() {
-    if (topo == TAMANHO_PILHA - 1) {
-        printf("A pilha está cheia, não é possível reservar\n");
+void trocarMultiplas(Fila *f, Pilha *p, Snapshot *snap) {
+    if (f->tamanho < 3 || p->topo < 2) {
+        printf("Troca multipla impossivel: verifique se existem pelo menos 3 pecas em ambas as estruturas.\n");
+        invalidarSnapshot(snap);
         return;
     }
-    Peca reservada = dequeue();
-    push(reservada);
-    printf("Reservando peça: [%c %d]\n", reservada.nome, reservada.id);
-    enqueue(gerarPeca());
+    if (snap) salvarSnapshot(snap, f, p);
+    for (int i = 0; i < 3; i++) {
+        int idx = (f->frente + i) % TAM_FILA;
+        Peca temp = f->itens[idx];
+        f->itens[idx] = p->itens[p->topo - i];
+        p->itens[p->topo - i] = temp;
+    }
+    printf("Troca multipla entre os 3 primeiros da fila e as 3 pecas da pilha realizada.\n");
 }
 
-void usarReservada() {
-    if (topo == -1) {
-        printf("A pilha está vazia, não há peças reservadas!\n");
-        return;
+void inverterFilaPilha(Fila *f, Pilha *p, Snapshot *snap) {
+    if (snap) salvarSnapshot(snap, f, p);
+
+    Fila fcopy = *f;
+    Pilha pcopy = *p;
+
+    f->frente = 0; f->tras = -1; f->tamanho = 0;
+    p->topo = -1;
+
+    for (int i = 0; i <= pcopy.topo && f->tamanho < TAM_FILA; i++) {
+        enfileirar(f, pcopy.itens[i]);
     }
-    Peca usada = pop();
-    printf("Usando peça reservada: [%c %d]\n", usada.nome, usada.id);
+
+    for (int i = 0; i < fcopy.tamanho && f->tamanho < TAM_FILA; i++) {
+        int idx = (fcopy.frente + i) % TAM_FILA;
+        enfileirar(f, fcopy.itens[idx]);
+    }
+
+    for (int i = 0; i < fcopy.tamanho && p->topo < TAM_PILHA - 1; i++) {
+        int idx = (fcopy.frente + i) % TAM_FILA;
+        empilhar(p, fcopy.itens[idx]);
+    }
+
+    printf("Inversao/transferencia entre fila e pilha realizada (respeitando capacidades).\n");
 }
+
+void limparBufferStdin() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
 
 int main() {
      // 🧩 Nível Novato: Fila de Peças Futuras
@@ -177,32 +328,207 @@ int main() {
     // - O menu deve ficar assim:
     //      4 - Trocar peça da frente com topo da pilha
     //      5 - Trocar 3 primeiros da fila com os 3 da pilha
-    srand(time(NULL));
-    inicializarFila();
+    srand((unsigned)time(NULL));
+    Fila fila;
+    Pilha pilha;
+    Snapshot snapshot;
+    snapshot.valido = 0;
 
-    int opcao;
+    int nivel = -1;
+
+    printf("Bem-vindo ao desafio \"Tetris Stack\"!\n");
+    printf("Escolha o nivel:\n");
+    printf("1 - Novato (fila somente)\n");
+    printf("2 - Aventureiro (fila + pilha)\n");
+    printf("3 - Mestre (todas operacoes)\n");
+    printf("Opcao: ");
+    if (scanf("%d", &nivel) != 1) {
+        printf("Entrada invalida. Encerrando.\n");
+        return 0;
+    }
+    limparBufferStdin();
+
+    // Inicializa estruturas
+    inicializarFila(&fila);
+    inicializarPilha(&pilha);
+    snapshot.valido = 0;
+
+    int opcao = -1;
     do {
-        exibirEstado();
-        printf("\nOpções para Ação:\n");
-        printf("1 - Jogar peça\n");
-        printf("2 - Reservar uma peça\n");
-        printf("3 - Usar peça reservada\n");
-        printf("0 - Sair\n");
-        printf("Opção: ");
-        scanf("%d", &opcao);
+        mostrarEstado(&fila, &pilha);
 
-        switch (opcao) {
-            case 1: jogarPeca(); 
+        if (nivel == 1) { // Novato
+            printf("\n-- Novato --\n");
+            printf("1 - Jogar peca (dequeue)\n");
+            printf("2 - Inserir nova peca manualmente (gera e enfileira se houver espaco)\n");
+            printf("0 - Sair\n");
+            printf("Escolha: ");
+            if (scanf("%d", &opcao) != 1) { limparBufferStdin(); opcao = -1; }
+            limparBufferStdin();
+
+            switch (opcao) {
+                case 1:
+                    // Jogar: desenfileira e gera nova
+                    if (filaVazia(&fila)) {
+                        printf("Fila vazia. Nao ha peca para jogar.\n");
+                    } else {
+                        Peca p = desenfileirar(&fila);
+                        printf("Peca jogada: [%c %d]\n", p.nome, p.id);
+                        enfileirar(&fila, gerarPeca());
+                    }
+                    break;
+                case 2:
+                    if (filaCheia(&fila)) {
+                        printf("Fila cheia. Nao e possivel enfileirar.\n");
+                    } else {
+                        enfileirar(&fila, gerarPeca());
+                        printf("Nova peca gerada e enfileirada.\n");
+                    }
+                    break;
+                case 0:
+                    printf("Encerrando (Novato)...\n");
+                    break;
+                default:
+                    printf("Opcao invalida.\n");
+            }
+        }
+        else if (nivel == 2) { // Aventureiro
+            printf("\n-- Aventureiro --\n");
+            printf("1 - Jogar peca (dequeue)\n");
+            printf("2 - Reservar peca (fila -> pilha)\n");
+            printf("3 - Usar peca reservada (pop)\n");
+            printf("0 - Sair\n");
+            printf("Escolha: ");
+            if (scanf("%d", &opcao) != 1) { limparBufferStdin(); opcao = -1; }
+            limparBufferStdin();
+
+            switch (opcao) {
+                case 1:
+                    if (filaVazia(&fila)) {
+                        printf("Fila vazia. Nada a jogar.\n");
+                    } else {
+                        Peca p = desenfileirar(&fila);
+                        printf("Peca jogada: [%c %d]\n", p.nome, p.id);
+                        enfileirar(&fila, gerarPeca());
+                    }
+                    break;
+                case 2:
+                    if (filaVazia(&fila)) {
+                        printf("Fila vazia. Nada para reservar.\n");
+                    } else if (pilhaCheia(&pilha)) {
+                        printf("Pilha cheia. Nao e possivel reservar.\n");
+                    } else {
+                        Peca mov = desenfileirar(&fila);
+                        empilhar(&pilha, mov);
+                        printf("Peca [%c %d] reservada.\n", mov.nome, mov.id);
+                        enfileirar(&fila, gerarPeca());
+                    }
+                    break;
+                case 3:
+                    if (pilhaVazia(&pilha)) {
+                        printf("Pilha vazia. Nada para usar.\n");
+                    } else {
+                        Peca u = desempilhar(&pilha);
+                        printf("Peca usada da reserva: [%c %d]\n", u.nome, u.id);
+                    }
+                    break;
+                case 0:
+                    printf("Encerrando (Aventureiro)...\n");
+                    break;
+                default:
+                    printf("Opcao invalida.\n");
+            }
+        }
+        else if (nivel == 3) { // Mestre
+            printf("\n-- Mestre --\n");
+            printf("1 - Jogar peca (dequeue)\n");
+            printf("2 - Reservar peca (fila -> pilha)\n");
+            printf("3 - Usar peca reservada (pop)\n");
+            printf("4 - Trocar frente da fila com topo da pilha\n");
+            printf("5 - Trocar os 3 primeiros da fila com as 3 da pilha\n");
+            printf("6 - Desfazer ultima acao (undo)\n");
+            printf("7 - Inverter/transferir fila <-> pilha (respeita capacidades)\n");
+            printf("0 - Sair\n");
+            printf("Escolha: ");
+            if (scanf("%d", &opcao) != 1) { limparBufferStdin(); opcao = -1; }
+            limparBufferStdin();
+
+            switch (opcao) {
+                case 1:
+                    // salvar estado antes e executar
+                    salvarSnapshot(&snapshot, &fila, &pilha);
+                    if (filaVazia(&fila)) {
+                        printf("Fila vazia. Nada a jogar.\n");
+                        invalidarSnapshot(&snapshot);
+                    } else {
+                        Peca p = desenfileirar(&fila);
+                        printf("Peca jogada: [%c %d]\n", p.nome, p.id);
+                        enfileirar(&fila, gerarPeca());
+                    }
+                    break;
+                case 2:
+                    if (filaVazia(&fila)) {
+                        printf("Fila vazia. Nada para reservar.\n");
+                    } else if (pilhaCheia(&pilha)) {
+                        printf("Pilha cheia. Nao e possivel reservar.\n");
+                    } else {
+                        salvarSnapshot(&snapshot, &fila, &pilha);
+                        Peca mov = desenfileirar(&fila);
+                        empilhar(&pilha, mov);
+                        enfileirar(&fila, gerarPeca());
+                        printf("Peca [%c %d] reservada.\n", mov.nome, mov.id);
+                    }
+                    break;
+                case 3:
+                    if (pilhaVazia(&pilha)) {
+                        printf("Pilha vazia. Nada para usar.\n");
+                    } else {
+                        salvarSnapshot(&snapshot, &fila, &pilha);
+                        Peca u = desempilhar(&pilha);
+                        printf("Peca usada da reserva: [%c %d]\n", u.nome, u.id);
+                    }
+                    break;
+                case 4:
+                    if (filaVazia(&fila) || pilhaVazia(&pilha)) {
+                        printf("Nao e possivel trocar: verifique se fila e pilha contem pecas.\n");
+                    } else {
+                        salvarSnapshot(&snapshot, &fila, &pilha);
+                        trocarUma(&fila, &pilha, NULL); // trocarUma ja imprime mensagem
+                    }
+                    break;
+                case 5:
+                    if (fila.tamanho < 3 || pilha.topo < 2) {
+                        printf("Troca multipla impossivel: ambas precisam ter ao menos 3 pecas.\n");
+                    } else {
+                        salvarSnapshot(&snapshot, &fila, &pilha);
+                        trocarMultiplas(&fila, &pilha, NULL);
+                    }
+                    break;
+                case 6:
+                    // desfazer
+                    if (snapshot.valido) {
+                        restaurarSnapshot(&snapshot, &fila, &pilha);
+                    } else {
+                        printf("Nenhuma acao disponivel para desfazer.\n");
+                    }
+                    break;
+                case 7:
+                    salvarSnapshot(&snapshot, &fila, &pilha);
+                    inverterFilaPilha(&fila, &pilha, NULL);
+                    break;
+                case 0:
+                    printf("Encerrando (Mestre)...\n");
+                    break;
+                default:
+                    printf("Opcao invalida.\n");
+            }
+        } else {
+            printf("Nivel desconhecido. Encerrando.\n");
             break;
-            case 2: reservaPeca(); 
-            break;
-            case 3: usarReservada(); 
-            break;
-            case 0: printf("Saindo do jogo... gratidão!\n"); 
-            break;
-            default: printf("Opção inválida!\n");
-        }           
+        }
+
     } while (opcao != 0);
 
+    printf("Obrigado por jogar Tetris Stack (simulador)!\n");
     return 0;
-}    
+}
